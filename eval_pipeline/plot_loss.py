@@ -146,6 +146,15 @@ def plot_classification_loss(
                     lambda correct: np.abs(correct - 1)
                 )
 
+    elif task_type == "classification_partial":
+        baseline = 0.5  # Random guessing will yield a partial score of 0.5 in expecation.
+        output_name = "partial_credit"
+        if invert:
+            for df in dfs.values():
+                df.loc[:, output_name] = df[output_name].apply(
+                    lambda correct: np.abs(correct - 1)
+                )
+
     # NOTE: the default plot type is now loss because that's what we ask for in the submission
     elif task_type == "classification_loss" or task_type == "classification":
         # NOTE: assuming all examples have the same number of classes
@@ -249,7 +258,10 @@ def plot_loss(
         )
 
     for index, (loss_dict, standard_errors, label) in separate_plots_dict.items():
-        if standard_errors is not None and task_type != "classification_acc":
+        if standard_errors is not None and task_type not in (
+            "classification_acc",
+            "classification_partial",
+        ):
             errorbar_data = [
                 (size_dict[size], loss, standard_errors[size])
                 for size, loss in loss_dict.items()
@@ -275,7 +287,7 @@ def plot_loss(
     # plt.xticks(ticks, labels, rotation=45)
     plt.xticks(ticks, labels)
 
-    if task_type == "classification_loss" or task_type == "classification" or task_type == "sequence_prob":
+    if task_type in ("classification_loss", "classification", "sequence_prob"):
         plt.yscale("log")
         plt.ylabel("Loss")
         title = "Log-log plot of loss vs model size"
@@ -284,6 +296,11 @@ def plot_loss(
         plt.ylim(-0.02, 1.02)
         plt.ylabel("Accuracy")
         title = "Log plot of accuracy vs model size"
+    elif task_type == "classification_partial":
+        # always show full range of accuracies
+        plt.ylim(-0.02, 1.02)
+        plt.ylabel("Partial credit")
+        title = "Log plot of partial credit vs model size"
     elif task_type == "numeric":
         # plt.yscale("log")
         title = "Numeric plot style"
@@ -329,6 +346,7 @@ def parse_args(args) -> argparse.Namespace:
             "classification",
             "classification_loss",
             "classification_acc",
+            "classification_partial",
             "numeric",
             "sequence_prob",
             "logodds",
