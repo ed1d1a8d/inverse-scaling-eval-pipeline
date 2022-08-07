@@ -7,3 +7,7 @@ temp.cache
 raw_data/imdb
 raw_data/anli
 raw_data/boolq/train.jsonl
+
+# For testing
+results/testing
+test.csv

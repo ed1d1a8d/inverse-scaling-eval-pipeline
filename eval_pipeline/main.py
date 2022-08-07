@@ -1,19 +1,20 @@
 from __future__ import annotations
+
 import argparse
-from datetime import datetime
-import json
-import sys
-from typing import Union, cast
 import csv
+import json
 import logging
 import shutil
-import pandas as pd
+import sys
 from pathlib import Path
+from typing import cast
+
+import pandas as pd
 import torch
 from tqdm.autonotebook import tqdm
 
 from eval_pipeline.dataset import Dataset, TaskType
-from eval_pipeline.models import Device, Model, GPT3Model, ValidHFModel
+from eval_pipeline.models import Device, Model
 
 
 def main():
@@ -130,7 +131,7 @@ def run_model(
     write_path = Path(write_dir, model_name + ".csv")
     # TODO: find a way to avoid having to specify field names ahead of time
     if task_type in ["classification_loss", "classification_acc", "classification"]:
-        field_names = ["index", "loss", "correct", "total_logprob"]
+        field_names = ["index", "loss", "correct", "total_logprob", "partial_credit"]
     elif task_type == "sequence_prob":
         field_names = ["index", "loss"]
     elif task_type == "numeric":
