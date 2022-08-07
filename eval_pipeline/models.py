@@ -1,33 +1,27 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
-import logging
+
 import os
-from typing import Union, cast, Sequence
-from typing_extensions import Literal, get_args
-from dotenv import load_dotenv
+from abc import ABC, abstractmethod
+from typing import Sequence, Union, cast
+
 import numpy as np
 import torch
 import torch.nn.functional as F
+from dotenv import load_dotenv
+from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore
+from typing_extensions import Literal, get_args
 
-from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig  # type: ignore
-from huggingface_hub import snapshot_download
-from accelerate import (
-    init_empty_weights,
-    dispatch_model,
-    infer_auto_device_map,
-    load_checkpoint_and_dispatch,
-)
 from eval_pipeline.dataset import (
     ClassificationExample,
     Example,
     ExampleWithClasses,
     LogoddsExample,
-    SequenceProbExample,
     NumericExample,
+    SequenceProbExample,
     TaskType,
 )
 from eval_pipeline.numeric_parser import BasicParser
-from eval_pipeline.openai_api import APIParameters, BaseGPT3Model, OpenAIModel, call_api
+from eval_pipeline.openai_api import APIParameters, OpenAIModel, call_api
 
 OPENAI_API_BASE_URL = "https://api.openai.com/v1/engines"
 load_dotenv()
@@ -199,7 +193,9 @@ class HFModel(Model):
             "total_logprob": total_logprobs,
         }
 
-    def _get_logits_and_tokens(self, prompts: list[str]) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
+    def _get_logits_and_tokens(
+        self, prompts: list[str]
+    ) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
         all_logits = []
         all_tokens = []
         for prompt in prompts:
@@ -262,7 +258,11 @@ class HFModel(Model):
         # we only need the logits for the final (new) token
         # NOTE: this may need to change if we use batch size > 1 with padding
         logits = outputs["logits"][:, -1].detach().to(device="cpu", dtype=torch.float32)
-        other_logits = other_outputs["logits"][:, -1].detach().to(device="cpu", dtype=torch.float32)
+        other_logits = (
+            other_outputs["logits"][:, -1]
+            .detach()
+            .to(device="cpu", dtype=torch.float32)
+        )
         logodds = self._logodds_from_logits(examples, logits)
         other_logodds = self._logodds_from_logits(examples, other_logits)
 
