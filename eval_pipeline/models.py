@@ -65,9 +65,7 @@ class Model(ABC):
         raise NotImplementedError("Abstract method")
 
     @staticmethod
-    def from_name(
-        model_name: Union[ValidHFModel, OpenAIModel], device: Device
-    ) -> Model:
+    def from_name(model_name: str, device: Device) -> Model:
         if model_name in valid_hf_models:
             model = HFModel(model_name, device)
         elif model_name in valid_gpt3_models:
@@ -106,8 +104,8 @@ class HFModel(Model):
     def _load_opt(self, checkpoint: str, device: Device):
         self.model = AutoModelForCausalLM.from_pretrained(
             checkpoint,
-            device_map="auto",
-            torch_dtype=torch.float16,
+            device_map=None if device == "cpu" else "auto",
+            torch_dtype=torch.float32 if device == "cpu" else torch.float16,
             max_length=1024,
         )
         return self.model

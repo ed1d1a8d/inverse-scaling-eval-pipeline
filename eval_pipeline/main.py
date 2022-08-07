@@ -13,7 +13,7 @@ import torch
 from tqdm.autonotebook import tqdm
 
 from eval_pipeline.dataset import Dataset, TaskType
-from eval_pipeline.models import Device, Model, BaseGPT3Model, ValidHFModel
+from eval_pipeline.models import Device, Model, GPT3Model, ValidHFModel
 
 
 def main():
@@ -82,7 +82,7 @@ def set_up_logging(log_path: Path, logging_level: str):
         "warn": logging.WARN,
         "error": logging.ERROR,
     }
-    
+
     logging.basicConfig(
         level=logging_levels[logging_level],
         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -118,7 +118,7 @@ def load_df(path: Path):
 
 
 def run_model(
-    model_name: Union[ValidHFModel, BaseGPT3Model],
+    model_name: str,
     data: Dataset,
     write_dir: Path,
     device: Device,
