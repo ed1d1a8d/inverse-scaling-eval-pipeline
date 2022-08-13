@@ -2,6 +2,9 @@
 This repo is for running inverse scaling examples.
 There is a colab set up for it, which you can find in the task spreadsheet.
 
+It is recommended to use conda (for python version) + pip (for dependencies)
+for environment management instead of poetry.
+
 # Running on NYU
 To run on NYU:
 ## Installing
@@ -25,4 +28,3 @@ To run on NYU:
 6. Run the plotting file by activating the Singularity image and running `python /ext3/inverse-scaling-eval-pipeline/eval_pipeline/plot_loss.py </path/to/results/dir>`
 ---
 Let me know which parts of these instructions are incorrect/unclear!
-

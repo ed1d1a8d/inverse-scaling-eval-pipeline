@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
-from typing import List, Sequence, Union, cast
+from typing import Sequence, Union, cast
 
 import numpy as np
 import torch
@@ -182,11 +182,10 @@ class HFModel(Model):
 
             prompt_start += len(example.classes)
 
+            total_logprob = sum(class_logprobs)
             normalised_logprobs = F.log_softmax(torch.tensor(class_logprobs), dim=-1)
-
             loss = -normalised_logprobs[example.answer_index].item()
             label_correct = int(np.argmax(normalised_logprobs) == example.answer_index)
-            total_logprob = sum(class_logprobs)
 
             # Answering 0 scores 1 point,
             # answering (n_classes - 1) scores 0 points,
@@ -204,7 +203,7 @@ class HFModel(Model):
             "loss": losses,
             "correct": labels_correct,
             "total_logprob": total_logprobs,
-            "partial_credit": partial_credits
+            "partial_credit": partial_credits,
         }
 
     def _get_logits_and_tokens(
@@ -464,12 +463,12 @@ class GPT3Model(Model):
         losses = []
         labels_correct = []
         total_logprobs = []
+        partial_credits = []
         choices = response_json["choices"]
 
-        n_classes = len(examples[0].classes)
-        for i, example in enumerate(examples):
-            # there are n times as many prompts as examples
-            prompt_start = i * n_classes
+        prompt_start = 0
+        for example in examples:
+            n_classes = len(example.classes)
             class_choices = choices[prompt_start : prompt_start + n_classes]
 
             # all class sequences begin after the initial prompt
@@ -492,6 +491,8 @@ class GPT3Model(Model):
                     class_logprob += token_logprob
                 relevant_logprobs.append(class_logprob)
 
+            prompt_start += len(example.classes)
+
             relevant_logprobs = torch.tensor(relevant_logprobs)
 
             loss = -F.log_softmax(relevant_logprobs, dim=-1)[example.answer_index]
@@ -499,12 +500,22 @@ class GPT3Model(Model):
             total_logprob = torch.logsumexp(relevant_logprobs, dim=-1)
             total_logprobs.append(total_logprob.item())
 
+            # Answering 0 scores 1 point,
+            # answering (n_classes - 1) scores 0 points,
+            # and anything in between is a linear interpolation.
+            partial_credit = float(
+                (n_classes - np.argmax(relevant_logprobs) - 1) / (n_classes - 1)
+            )
+
             label_correct = int(np.argmax(relevant_logprobs) == example.answer_index)
             labels_correct.append(label_correct)
+            partial_credits.append(partial_credit)
+
         return {
             "loss": losses,
             "correct": labels_correct,
             "total_logprob": total_logprobs,
+            "partial_credit": partial_credits,
         }
 
     def _evaluate_logodds(
