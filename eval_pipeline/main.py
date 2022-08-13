@@ -14,7 +14,7 @@ import torch
 from tqdm.autonotebook import tqdm
 
 from eval_pipeline.dataset import Dataset, TaskType
-from eval_pipeline.models import Device, Model
+from eval_pipeline.models import Device, HFModel, Model
 
 
 def main():
@@ -146,7 +146,11 @@ def run_model(
         writer.writeheader()
         model = Model.from_name(model_name, device)
         n_data = len(data)
+
         # TODO: Fix padding so I can use >1 batch size for transformers models as well
+        if isinstance(model, HFModel):
+            batch_size = 1
+
         for start_index in tqdm(range(0, n_data, batch_size)):
             examples = data.examples[start_index : start_index + batch_size]
             outputs = model(examples, task_type)
