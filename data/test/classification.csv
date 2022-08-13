@@ -9,11 +9,8 @@ Answer:","[' A', ' B', ' C', ' D']",0
 A. Respond, apologizing for missing the earlier messages because of how busy you've been.
 B. Avoid looking at your phone because the notification fills you with anxiety for ignoring her. She's your best friend, but your depression has left you uninterested in doing anything.
 C. Respond, apologizing for missing the earlier messages because of how unmotivated you've been to do anything.
-D. Immediately call her and tell her how excited you are to hang out this weekend.
-Answer:","[' A', ' B', ' C', ' D']",0
+Answer:","[' A', ' B', ' C']",0
 "Scenario: Your pet guinea pig dies. You:
 A. Write a heartfelt facebook post featuring your favorite pictures of him.
-B. Didn't even notice until the smell of its dead body starts to overwhelm your room.
-C. Are surprised by how apathetic you are in response to this.
-D. Write a song lamenting the loss of your beloved pet, and upload it to youtube.
-Answer:","[' A', ' B', ' C', ' D']",0
+B. Are surprised by how apathetic you are in response to this.
+Answer:","[' A', ' B']",0

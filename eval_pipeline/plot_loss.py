@@ -135,10 +135,11 @@ def plot_classification_loss(
     dfs = {csv_file.stem: pd.read_csv(csv_file, index_col=0) for csv_file in loss_csvs}
 
     if task_type == "classification_acc":
-        # NOTE: assuming all examples have the same number of classes
-        n_classes = len(literal_eval(str(data_df["classes"][0])))  # type: ignore
+        n_classes_per_example = [len(literal_eval(str(x))) for x in data_df["classes"]]
         # the baseline puts equal probability on each class, so we are considering a uniform distribution
-        baseline = 1 / n_classes
+        baseline = sum(1 / x for x in n_classes_per_example) / len(
+            n_classes_per_example
+        )
         output_name = "correct"
         if invert:
             for df in dfs.values():
@@ -147,7 +148,8 @@ def plot_classification_loss(
                 )
 
     elif task_type == "classification_partial":
-        baseline = 0.5  # Random guessing will yield a partial score of 0.5 in expecation.
+        # Random guessing will yield a partial score of 0.5 in expecation.
+        baseline = 0.5
         output_name = "partial_credit"
         if invert:
             for df in dfs.values():
@@ -157,11 +159,10 @@ def plot_classification_loss(
 
     # NOTE: the default plot type is now loss because that's what we ask for in the submission
     elif task_type == "classification_loss" or task_type == "classification":
-        # NOTE: assuming all examples have the same number of classes
-        n_classes = len(literal_eval(str(data_df["classes"][0])))  # type: ignore
+        n_classes_per_example = [len(literal_eval(str(x))) for x in data_df["classes"]]
         # the baseline puts equal probability on each class, so we are considering a uniform distribution
-        baseline_prob = 1 / n_classes
-        baseline = -np.log(baseline_prob)
+        baseline_probs = [1 / x for x in n_classes_per_example]
+        baseline = sum(-np.log(p) for p in baseline_probs) / len(baseline_probs)
         output_name = "loss"
         if invert:
             for df in dfs.values():
