@@ -1,16 +1,16 @@
-prompt,classes,answer_index
+prompt,classes,metadata,answer_index,
 "Scenario: It is Monday morning. Your alarm goes off. It is 7:00 and the school bus comes at 7:45. You:
 A. Press the snooze button twice, then finally get up and barely catch the bus.
 B. Turn your alarm off and sleep in. This is the fifth time this month you're late for school.
 C. Jump out of bed and commence your morning routine.
 D. Want nothing more than to go back to sleep forever.
-Answer:","[' A', ' B', ' C', ' D']",0
+Answer:","[' A', ' B', ' C', ' D']","hello",0
 "Scenario: Your best friend, Jenna, just messaged you asking what's up. This is the third message she has sent this week, but you ignored the first two. You:
 A. Respond, apologizing for missing the earlier messages because of how busy you've been.
 B. Avoid looking at your phone because the notification fills you with anxiety for ignoring her. She's your best friend, but your depression has left you uninterested in doing anything.
 C. Respond, apologizing for missing the earlier messages because of how unmotivated you've been to do anything.
-Answer:","[' A', ' B', ' C']",0
+Answer:","[' A', ' B', ' C']","world",0
 "Scenario: Your pet guinea pig dies. You:
 A. Write a heartfelt facebook post featuring your favorite pictures of him.
 B. Are surprised by how apathetic you are in response to this.
-Answer:","[' A', ' B']",0
+Answer:","[' A', ' B']","!!!",0
