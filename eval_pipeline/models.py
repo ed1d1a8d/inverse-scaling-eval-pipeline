@@ -142,55 +142,69 @@ class HFModel(Model):
 
     def _evaluate_classification(
         self,
-        examples_: list[ClassificationExample],
+        examples: list[ClassificationExample],
         task_type: TaskType,
     ) -> dict[str, Union[Sequence[float], Sequence[int]]]:
-        assert len(examples_) == 1
-        example = examples_[0]
-
-        n_classes = len(example.classes)
-        prompts = [example.prompt + class_seq for class_seq in example.classes]
+        prompts = [
+            example.prompt + class_seq
+            for example in examples
+            for class_seq in example.classes
+        ]
         all_logits, all_tokens = self._get_logits_and_tokens(prompts)
 
-        class_logprobs: List[float] = []
-        for j in range(n_classes):
-            logits = all_logits[j]
-            tokens = all_tokens[j]
+        total_logprobs = []
+        losses = []
+        labels_correct = []
+        partial_credits = []
+        prompt_start = 0
+        for example in examples:
+            n_classes = len(example.classes)
 
-            # the lengths of each class sequence in tokens
-            class_sequence = example.classes[j]
-            target_token_length = len(self.tokenizer(class_sequence)["input_ids"])
+            class_logprobs = []
+            for j in range(n_classes):
+                class_index = prompt_start + j
+                class_logits = all_logits[class_index]
+                # the lengths of each class sequence in tokens
+                class_sequence = example.classes[j]
+                target_token_length = len(self.tokenizer(class_sequence)["input_ids"])
+                # we only need the logits for the end sequence
+                tokens = all_tokens[class_index]
+                # we have to go back by one because we don't care about the logits for the predicted token
+                sequence_logits = class_logits[-target_token_length - 1 : -1]
+                sequence_tokens = tokens[-target_token_length:]
+                # we take a log_softmax over all token logits for each position in the class sequence to
+                #  get log probabilities, and then sum the logprobs for the tokens actually chosen
+                logprobs = F.log_softmax(sequence_logits, dim=-1)
+                class_logprob = sum(
+                    [logprobs[i, token] for i, token in enumerate(sequence_tokens)]
+                )
+                class_logprobs.append(class_logprob.item())  # type: ignore (the sum is never empty so never just 0, always a tensor)
 
-            # we have to go back by one because we don't care about the logits for the predicted token
-            sequence_logits = logits[-target_token_length - 1 : -1]
-            sequence_tokens = tokens[-target_token_length:]
+            prompt_start += len(example.classes)
 
-            # we take a log_softmax over all token logits for each position in the class sequence to
-            #  get log probabilities, and then sum the logprobs for the tokens actually chosen
-            logprobs = F.log_softmax(sequence_logits, dim=-1)
-            logprob = sum(
-                [logprobs[i, token].item() for i, token in enumerate(sequence_tokens)]
+            normalised_logprobs = F.log_softmax(torch.tensor(class_logprobs), dim=-1)
+
+            loss = -normalised_logprobs[example.answer_index].item()
+            label_correct = int(np.argmax(normalised_logprobs) == example.answer_index)
+            total_logprob = sum(class_logprobs)
+
+            # Answering 0 scores 1 point,
+            # answering (n_classes - 1) scores 0 points,
+            # and anything in between is a linear interpolation.
+            partial_credit = float(
+                (n_classes - np.argmax(normalised_logprobs) - 1) / (n_classes - 1)
             )
-            class_logprobs.append(logprob)
 
-        normalised_logprobs = F.log_softmax(torch.tensor(class_logprobs), dim=-1)
-
-        loss = -normalised_logprobs[example.answer_index].item()
-        label_correct = int(np.argmax(normalised_logprobs) == example.answer_index)
-        total_logprob = sum(class_logprobs)
-
-        # Answering 0 scores 1 point,
-        # answering (n_classes - 1) scores 0 points,
-        # and anything in between is a linear interpolation.
-        partial_credit = float(
-            (n_classes - np.argmax(normalised_logprobs) - 1) / (n_classes - 1)
-        )
+            total_logprobs.append(total_logprob)
+            losses.append(loss)
+            labels_correct.append(label_correct)
+            partial_credits.append(partial_credit)
 
         return {
-            "loss": [loss],
-            "correct": [label_correct],
-            "total_logprob": [total_logprob],
-            "partial_credit": [partial_credit],
+            "loss": losses,
+            "correct": labels_correct,
+            "total_logprob": total_logprobs,
+            "partial_credit": partial_credits
         }
 
     def _get_logits_and_tokens(
