@@ -180,19 +180,18 @@ class HFModel(Model):
                 )
                 class_logprobs.append(class_logprob.item())  # type: ignore (the sum is never empty so never just 0, always a tensor)
 
-            prompt_start += len(example.classes)
+            prompt_start += n_classes
 
             total_logprob = sum(class_logprobs)
             normalised_logprobs = F.log_softmax(torch.tensor(class_logprobs), dim=-1)
             loss = -normalised_logprobs[example.answer_index].item()
             label_correct = int(np.argmax(normalised_logprobs) == example.answer_index)
 
-            # Answering 0 scores 1 point,
-            # answering (n_classes - 1) scores 0 points,
-            # and anything in between is a linear interpolation.
-            partial_credit = float(
-                (n_classes - np.argmax(normalised_logprobs) - 1) / (n_classes - 1)
-            )
+            # Answering answer_index scores 1 point
+            # Points linearly decay to zero when you have the wrong answer
+            partial_credit = 1 - float(
+                np.abs(example.answer_index - np.argmax(normalised_logprobs))
+            ) / (n_classes - 1)
 
             total_logprobs.append(total_logprob)
             losses.append(loss)
@@ -491,7 +490,7 @@ class GPT3Model(Model):
                     class_logprob += token_logprob
                 relevant_logprobs.append(class_logprob)
 
-            prompt_start += len(example.classes)
+            prompt_start += n_classes
 
             relevant_logprobs = torch.tensor(relevant_logprobs)
 
@@ -500,12 +499,11 @@ class GPT3Model(Model):
             total_logprob = torch.logsumexp(relevant_logprobs, dim=-1)
             total_logprobs.append(total_logprob.item())
 
-            # Answering 0 scores 1 point,
-            # answering (n_classes - 1) scores 0 points,
-            # and anything in between is a linear interpolation.
-            partial_credit = float(
-                (n_classes - np.argmax(relevant_logprobs) - 1) / (n_classes - 1)
-            )
+            # Answering answer_index scores 1 point
+            # Points linearly decay to zero when you have the wrong answer
+            partial_credit = 1 - float(
+                np.abs(example.answer_index - np.argmax(relevant_logprobs))
+            ) / (n_classes - 1)
 
             label_correct = int(np.argmax(relevant_logprobs) == example.answer_index)
             labels_correct.append(label_correct)
