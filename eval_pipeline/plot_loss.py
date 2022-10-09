@@ -145,6 +145,32 @@ def plot_classification_loss(
                     lambda correct: np.abs(correct - 1)
                 )
 
+    elif task_type == "classification_partial":
+        # Random guessing will yield a partial score of 0.5 in expecation.
+        baseline = 0.5
+        output_name = "partial_credit"
+
+        # Compute partial_credit column
+        for df in dfs.values():
+            # Iterate through each example and calculate the partial credit
+            for i, (_, row) in enumerate(df.iterrows()):
+                # Get the index of the correct class
+                correct_idx: int = row.correct
+                # Get probs
+                probs: list[float] = literal_eval(str(row.probs))
+
+                # Calculate partial credit per response
+                weights = np.abs(np.arange(len(probs)) - correct_idx) / (len(probs) - 1)
+
+                # Calulate total partial credit
+                df.loc[i, output_name] = (probs * weights).sum()
+
+        if invert:
+            for df in dfs.values():
+                df.loc[:, output_name] = df[output_name].apply(
+                    lambda correct: np.abs(correct - 1)
+                )
+
     # NOTE: the default plot type is now loss because that's what we ask for in the submission
     elif task_type == "classification_loss" or task_type == "classification":
         n_classes_per_example = np.array([len(literal_eval(str(x))) for x in data_df["classes"]])
@@ -246,7 +272,10 @@ def plot_loss(
         )
 
     for index, (loss_dict, standard_errors, label) in separate_plots_dict.items():
-        if standard_errors is not None and task_type != "classification_acc":
+        if standard_errors is not None and task_type not in (
+            "classification_acc",
+            "classification_partial",
+        ):
             errorbar_data = [
                 (size_dict[size], loss, standard_errors[size])
                 for size, loss in loss_dict.items()
@@ -280,6 +309,11 @@ def plot_loss(
         plt.ylim(-0.02, 1.02)
         plt.ylabel("Accuracy")
         title = "Log plot of accuracy vs model size"
+    elif task_type == "classification_partial":
+        # always show full range of accuracies
+        plt.ylim(-0.02, 1.02)
+        plt.ylabel("Partial credit")
+        title = "Log plot of partial credit vs model size"
     elif task_type == "numeric":
         # plt.yscale("log")
         title = "Numeric plot style"
@@ -294,7 +328,7 @@ def plot_loss(
         raise ValueError(f"Unknown task type {task_type}")
     if invert:
         title += " (inverted)"
-    
+
     # NOTE: this printing will be messed up if using multiple numbers of examples
     if average_coverages is not None:
         coverages = average_coverages[0]
@@ -304,7 +338,8 @@ def plot_loss(
     plt.title(title)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(Path(exp_dir, "loss_plot.svg"), format="svg")
+    plt.savefig(Path(exp_dir, f"{task_type}.svg"), format="svg")
+    plt.savefig(Path(exp_dir, f"{task_type}.png"), format="png")
     if show:
         plt.show()
 
@@ -329,6 +364,7 @@ def parse_args(args) -> argparse.Namespace:
             "classification",
             "classification_loss",
             "classification_acc",
+            "classification_partial",
             "numeric",
             "sequence_prob",
             "logodds",

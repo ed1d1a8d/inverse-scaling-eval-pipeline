@@ -1,19 +1,20 @@
 from __future__ import annotations
+
 import argparse
-from datetime import datetime
-import json
-import sys
-from typing import Union, cast
 import csv
+import json
 import logging
 import shutil
-import pandas as pd
+import sys
 from pathlib import Path
+from typing import Union, cast
+
+import pandas as pd
 import torch
 from tqdm.autonotebook import tqdm
 
 from eval_pipeline.dataset import Dataset, TaskType
-from eval_pipeline.models import Device, Model, BaseGPT3Model, ValidHFModel
+from eval_pipeline.models import BaseGPT3Model, Device, HFModel, Model, ValidHFModel
 
 
 def main():
@@ -82,7 +83,7 @@ def set_up_logging(log_path: Path, logging_level: str):
         "warn": logging.WARN,
         "error": logging.ERROR,
     }
-    
+
     logging.basicConfig(
         level=logging_levels[logging_level],
         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -130,7 +131,7 @@ def run_model(
     write_path = Path(write_dir, model_name + ".csv")
     # TODO: find a way to avoid having to specify field names ahead of time
     if task_type in ["classification_loss", "classification_acc", "classification"]:
-        field_names = ["index", "loss", "correct", "predicted", "total_logprob"]
+        field_names = ["index", "loss", "correct", "predicted", "total_logprob", "probs"]
     elif task_type == "sequence_prob":
         field_names = ["index", "loss"]
     elif task_type == "numeric":
@@ -145,7 +146,11 @@ def run_model(
         writer.writeheader()
         model = Model.from_name(model_name, device)
         n_data = len(data)
+
         # TODO: Fix padding so I can use >1 batch size for transformers models as well
+        if isinstance(model, HFModel):
+            batch_size = 1
+
         for start_index in tqdm(range(0, n_data, batch_size)):
             examples = data.examples[start_index : start_index + batch_size]
             outputs = model(examples, task_type)

@@ -26,3 +26,23 @@ To run on NYU:
 ---
 Let me know which parts of these instructions are incorrect/unclear!
 
+## Tony's testing tips
+1. It is recommended to use conda (for python version) + pip (for dependencies)
+for environment management instead of poetry.
+
+2. Run the following commands from the root of the repo:
+   ```
+   rm -r results/testing
+   python -m eval_pipeline.main \
+     --dataset-path "data/test/classification.csv" \
+     --exp-dir testing \
+     --models opt-125m opt-350m babbage curie \
+     --task-type classification \
+     --batch-size 100
+   python -m eval_pipeline.plot_loss \
+     --task-type classification_acc testing
+   python -m eval_pipeline.plot_loss \
+     --task-type classification_loss testing
+   python -m eval_pipeline.plot_loss \
+     --task-type classification_partial testing
+   ```

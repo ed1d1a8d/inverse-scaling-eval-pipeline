@@ -115,8 +115,8 @@ class HFModel(Model):
     def _load_opt(self, checkpoint: str, device: Device):
         self.model = AutoModelForCausalLM.from_pretrained(
             checkpoint,
-            device_map="auto",
-            torch_dtype=torch.float16,
+            device_map=None if device == "cpu" else "auto",
+            torch_dtype=torch.float32 if device == "cpu" else torch.float16,
             max_length=1024,
         )
         return self.model
@@ -166,6 +166,7 @@ class HFModel(Model):
         losses = []
         labels_correct = []
         labels_predicted = []
+        probs = []
         prompt_start = 0
         for example in examples:
             n_classes = len(example.classes)
@@ -206,12 +207,15 @@ class HFModel(Model):
             ]
             labels_predicted.append(label_predicted)
 
+            probs.append(F.softmax(torch.tensor(class_logprobs), dim=-1).tolist())
+
             prompt_start += n_classes
         return {
             "loss": losses,
             "correct": labels_correct,
             "predicted": labels_predicted,
             "total_logprob": total_logprobs,
+            "probs": probs,
         }
 
     def _get_logits_and_tokens(
@@ -473,6 +477,7 @@ class GPT3Model(Model):
         labels_correct = []
         labels_predicted = []
         total_logprobs = []
+        probs = []
         choices = response_json["choices"]
 
         prompt_start = 0
@@ -513,12 +518,15 @@ class GPT3Model(Model):
             label_predicted = example.classes[relevant_logprobs.argmax(dim=-1).item()]
             labels_predicted.append(label_predicted)
 
+            probs.append(F.softmax(relevant_logprobs, dim=-1).tolist())
+
             prompt_start += n_classes
         return {
             "loss": losses,
             "correct": labels_correct,
             "predicted": labels_predicted,
             "total_logprob": total_logprobs,
+            "probs": probs,
         }
 
     def _evaluate_logodds(
