@@ -161,10 +161,10 @@ def plot_classification_loss(
                 probs: list[float] = literal_eval(str(row.probs))
 
                 # Calculate partial credit per response
-                weights = np.abs(np.arange(len(probs)) - correct_idx) / (len(probs) - 1)
+                scores = 1 - np.abs(np.arange(len(probs)) - correct_idx) / (len(probs) - 1)
 
                 # Calulate total partial credit
-                df.loc[i, output_name] = (probs * weights).sum()
+                df.loc[i, output_name] = (probs * scores).sum()
 
         if invert:
             for df in dfs.values():
