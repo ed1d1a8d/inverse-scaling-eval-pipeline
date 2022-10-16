@@ -155,7 +155,8 @@ def plot_classification_loss(
             # Iterate through each example and calculate the partial credit
             for i, (_, row) in enumerate(df.iterrows()):
                 # Get the index of the correct class
-                correct_idx: int = row.correct
+                correct_idx: int = int(data_df["answer_index"].iloc[i])
+
                 # Get probs
                 probs: list[float] = literal_eval(str(row.probs))
 
