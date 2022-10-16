@@ -14,7 +14,8 @@ import torch
 from tqdm.autonotebook import tqdm
 
 from eval_pipeline.dataset import Dataset, TaskType
-from eval_pipeline.models import BaseGPT3Model, Device, HFModel, Model, ValidHFModel
+from eval_pipeline.models import Device, HFModel, Model, ValidHFModel
+from eval_pipeline.openai_api import BaseGPT3Model
 
 
 def main():
@@ -131,7 +132,14 @@ def run_model(
     write_path = Path(write_dir, model_name + ".csv")
     # TODO: find a way to avoid having to specify field names ahead of time
     if task_type in ["classification_loss", "classification_acc", "classification"]:
-        field_names = ["index", "loss", "correct", "predicted", "total_logprob", "probs"]
+        field_names = [
+            "index",
+            "loss",
+            "correct",
+            "predicted",
+            "total_logprob",
+            "probs",
+        ]
     elif task_type == "sequence_prob":
         field_names = ["index", "loss"]
     elif task_type == "numeric":
